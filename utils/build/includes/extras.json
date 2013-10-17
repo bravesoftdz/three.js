@@ -19,6 +19,7 @@
 	"src/extras/curves/CubicBezierCurve3.js",
 	"src/extras/curves/SplineCurve3.js",
 	"src/extras/curves/ClosedSplineCurve3.js",
+	"src/extras/animation/Animatic.js",
 	"src/extras/animation/AnimationHandler.js",
 	"src/extras/animation/Animation.js",
 	"src/extras/animation/KeyFrameAnimation.js",
