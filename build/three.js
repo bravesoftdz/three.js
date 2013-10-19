@@ -30062,6 +30062,40 @@ THREE.Animatic = function() {
 
 THREE.Animatic.Objects = [];
 THREE.Animatic.Attributes = [];
+THREE.Animatic.Easing = {
+  linear: function(prop, v1, v2) {return v1 + (prop * (v2 - v1));},
+  ease: function(prop, v1, v2) {return v1 + (Math.sin(prop * Math.PI / 2) * (v2 - v1));},
+  spring: function(prop, v1, v2) {
+        var t = prop;
+        var b = v1;
+        var c = v2 - v1;
+	var ts = t * t;
+	var tc = ts * t;
+        var snap = (56*tc*ts + -175*ts*ts + 200*tc + -100*ts + 20*t);
+        return b + c * snap;
+  },
+  bounce: function(prop, v1, v2) {
+        var t = prop;
+        var b = v1;
+        var c = v2 - v1;
+	var ts = t * t;
+	var tc = ts * t;
+        var snap = (56*tc*ts + -175*ts*ts + 200*tc + -100*ts + 20*t);
+        if (snap > 1) {
+          snap = 2 - snap;
+        }
+        return b + c * snap;
+  },
+  snap: function(prop, v1, v2) {
+        var t = prop;
+        var b = v1;
+        var c = v2 - v1;
+	var ts = t * t;
+	var tc = ts * t;
+	var snap = (tc*ts + -5*ts*ts + 10*tc + -10*ts + 5*t);
+	return b+c*snap;
+  }
+};
 
 //
 // These are the major functions.
@@ -30075,25 +30109,34 @@ THREE.Animatic.stopAllAnimation = function() {
 THREE.Animatic.Sequencer = function() {
 }
 
-/**
- * Animate an attribute of an object to some value.
- *
- *   animate(<object>, <attribute-name>, <to-value>, <how-many-secs>=0.5)
- *
- * For example, to animate the left-position of an object called heading
- * to 300px in 4 seconds, use:
- *
- *   animate(heading.style, "left", 300, 4);
- *
- */
 THREE.Animatic.animate = function(obj, binding, howManySecs, doAfter) {
+  return THREE.Animatic.animateWith(obj, binding, howManySecs, doAfter, THREE.Animatic.Easing.linear);
+}
+
+THREE.Animatic.ease = function(obj, binding, howManySecs, doAfter) {
+  return THREE.Animatic.animateWith(obj, binding, howManySecs, doAfter, THREE.Animatic.Easing.ease);
+}
+
+THREE.Animatic.spring = function(obj, binding, howManySecs, doAfter) {
+  return THREE.Animatic.animateWith(obj, binding, howManySecs, doAfter, THREE.Animatic.Easing.spring);
+}
+
+THREE.Animatic.bounce = function(obj, binding, howManySecs, doAfter) {
+  return THREE.Animatic.animateWith(obj, binding, howManySecs, doAfter, THREE.Animatic.Easing.bounce);
+}
+
+THREE.Animatic.snap = function(obj, binding, howManySecs, doAfter) {
+  return THREE.Animatic.animateWith(obj, binding, howManySecs, doAfter, THREE.Animatic.Easing.snap);
+}
+
+THREE.Animatic.animateWith = function(obj, binding, howManySecs, doAfter, easing) {
   var b, result, attrName;
   if ((Object.prototype.toString.call(binding) === '[object Array]') && (binding.length > 0)) {
-    result = THREE.Animatic.animate(obj, binding[0], howManySecs / binding.length);
+    result = THREE.Animatic.animateWith(obj, binding[0], howManySecs / binding.length, undefined, easing);
     if (binding.length > 1) {
       result.next = function() {
-        THREE.Animatic.animate(obj, binding.slice(1, binding.length), 
-          howManySecs * (binding.length - 1) / binding.length, doAfter);
+        THREE.Animatic.animateWith(obj, binding.slice(1, binding.length), 
+          howManySecs * (binding.length - 1) / binding.length, doAfter, easing);
       }
     } else if (doAfter) {
       result.next = doAfter;
@@ -30102,9 +30145,9 @@ THREE.Animatic.animate = function(obj, binding, howManySecs, doAfter) {
     for (attrName in binding) {
       b = binding[attrName];
       if (typeof b == "number") {
-        result = THREE.Animatic.animateSingle(obj, attrName, b, howManySecs);
+        result = THREE.Animatic.animateSingle(obj, attrName, b, howManySecs, easing);
       } else if (typeof b == "object") {
-        result = THREE.Animatic.animate(obj[attrName], b, howManySecs);
+        result = THREE.Animatic.animateWith(obj[attrName], b, howManySecs, undefined, easing);
       }
     }
     if (doAfter) {
@@ -30114,40 +30157,13 @@ THREE.Animatic.animate = function(obj, binding, howManySecs, doAfter) {
   return result;
 }
 
-THREE.Animatic.animateSingle = function (obj, attrName, targetValue, howManySecs) {
+THREE.Animatic.animateSingle = function (obj, attrName, targetValue, howManySecs, easing) {
     var animatorFn;
     var t = howManySecs || 0.25;
     var seq = new THREE.Animatic.Sequencer();
-    if (obj[attrName] instanceof Array) {
-        for (var i = 0; i < obj[attrName].length; i++) {
-            var itemObject = new Object();
-            itemObject["_object"] = obj;
-            itemObject["_attr"] = "" + attrName;
-            itemObject["_item_" + i] = obj[attrName][i];
-            animatorFn = THREE.Animatic.runner(t, obj[attrName][i], targetValue[i], obj, attrName, seq);
-            THREE.Animatic.animateWithAnimator(itemObject, "_item_" + i, animatorFn);
-        }
-    } else {
-        animatorFn = THREE.Animatic.runner(t, obj[attrName], targetValue, obj, attrName, seq);
-        THREE.Animatic.animateWithAnimator(obj, attrName, animatorFn);
-    }
-    return seq;
-}
-
-THREE.Animatic.rotate = function(obj, binding) {
-  var attrName;
-  for (attrName in binding) {
-    if (typeof binding[attrName] == "number") {
-      THREE.Animatic.rotateSingle(obj, attrName, binding[attrName]);
-    } else if (typeof binding[attrName] == "object") {
-      THREE.Animatic.rotate(obj[attrName], binding[attrName]);
-    }
-  }
-}
-
-THREE.Animatic.rotateSingle = function(obj, attrName, rpm) {
-    var animatorFn = THREE.Animatic.rotator(3.14159265358979 * 2.0 / rpm);
+    animatorFn = THREE.Animatic.runner(t, obj[attrName], targetValue, obj, attrName, seq, easing);
     THREE.Animatic.animateWithAnimator(obj, attrName, animatorFn);
+    return seq;
 }
 
 /**
@@ -30238,7 +30254,7 @@ THREE.Animatic.now = function() {
 // The animator factories
 //
 
-THREE.Animatic.runner = function(p, fromValue, toValue, obj, attrName, seq) {
+THREE.Animatic.runner = function(p, fromValue, toValue, obj, attrName, seq, easing) {
     var v1 = eval(THREE.Animatic.stripUnits(fromValue + ""));
     var v2 = eval(THREE.Animatic.stripUnits(toValue + ""));
     var now = THREE.Animatic.now();
@@ -30257,22 +30273,7 @@ THREE.Animatic.runner = function(p, fromValue, toValue, obj, attrName, seq) {
             return v2;
         }
         var prop = (justNow - now) / (then - now);
-        return v1 + (Math.sin(prop * Math.PI / 2) * (v2 - v1));
-    }
-}
-
-THREE.Animatic.rotator = function(p) {
-    var now = THREE.Animatic.now();
-    var then = now + (Math.abs(p) * 1000);
-    var sign = (p < 0) ? -1 : 1;
-    return function() {
-        var justNow = THREE.Animatic.now();
-        if (justNow >= then) {
-            now = justNow;
-            then = now + (Math.abs(p) * 1000);
-        }
-        var prop = (justNow - now) / (then - now);
-        return sign * prop * 2.0 * 3.14159265358979;
+        return easing(prop, v1, v2);
     }
 }
 
