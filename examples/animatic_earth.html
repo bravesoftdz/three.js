@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Animation of the Eart and Moon using Animatic</title>
+    <title>Animation of the Earth and Moon using Animatic</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
    </head>
@@ -71,11 +71,14 @@
       scene.add(earthWithMoon);
       
       // ANIMATION
-      function rotate(world, angle) {
+      // 
+      // The important part. This function is written using an 
+      // Animatic.animate call. 
+      function rotate(world, angularSpeed) {
           THREE.Animatic.animate(world.rotation,
-              {y: world.rotation.y + angle}, 
+              {y: world.rotation.y + angularSpeed}, 
               1.0, 
-              function() {rotate(world, angle)});
+              function() {rotate(world, angularSpeed)});
       }
       rotate(earthWithMoon, 1.2);
       rotate(earth, 1.0);
