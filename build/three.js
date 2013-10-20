@@ -30146,6 +30146,9 @@ THREE.Animatic.animateWith = function(obj, binding, howManySecs, doAfter, easing
       b = binding[attrName];
       if (typeof b == "number") {
         result = THREE.Animatic.animateSingle(obj, attrName, b, howManySecs, easing);
+      } else if ((Object.prototype.toString.call(b) === '[object Array]') && (b.length > 0)) {
+        THREE.Animatic.animateWith(obj[attrName], b, howManySecs, undefined, easing);
+        result = THREE.Animatic.animateSingle(obj, "__$$$dummy", 1, howManySecs, easing);
       } else if (typeof b == "object") {
         result = THREE.Animatic.animateWith(obj[attrName], b, howManySecs, undefined, easing);
       }
