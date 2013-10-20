@@ -70,10 +70,15 @@
       
       scene.add(earthWithMoon);
       
-      // ANIMATION
+      // ANIMATION -- THE IMPORTANT PART
       // 
-      // The important part. This function is written using an 
-      // Animatic.animate call. 
+      // This function is written using an `Animatic.animate`
+      // call. The code will rotate the object by
+      // `angularSpeed` radians over 1 second.
+      // Once the 1-second animation is complete, `animate`
+      // will run the anonymous function passed as the final 
+      // parameter. This function calls the rotate function 
+      // again, and so the animation continues.
       function rotate(world, angularSpeed) {
           THREE.Animatic.animate(world.rotation,
               {y: world.rotation.y + angularSpeed}, 
